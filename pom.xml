@@ -40,7 +40,7 @@
 				<muleVersion>4.3.0</muleVersion>
 				<objectStoreV2>true</objectStoreV2>
 				</cloudHubDeployment>
-				<sharedLibraries>
+                <sharedLibraries>
                         <sharedLibrary>
                             <groupId>mysql</groupId>
                             <artifactId>mysql-connector-java</artifactId>
@@ -104,11 +104,6 @@
             <classifier>mule-plugin</classifier>
         </dependency>
     	<dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.25</version>
-        </dependency>
-    	<dependency>
             <groupId>527568a4-68d2-43b1-bb57-d74a0aad0b58</groupId>
             <artifactId>nr-experience-api</artifactId>
             <version>1.0.2</version>
@@ -120,6 +115,11 @@
             <artifactId>mule-plugin-my-trains-customer-sapi</artifactId>
             <version>1.0.3</version>
             <classifier>mule-plugin</classifier>
+        </dependency>
+    	<dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.25</version>
         </dependency>
     </dependencies>
 

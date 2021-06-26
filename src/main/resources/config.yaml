@@ -2,3 +2,15 @@ http:
   port: "8082"
   protocol: "HTTP"
   host: "0.0.0.0"
+  
+  
+okta:
+  port: "8087"
+  protocol: "HTTP"
+  host: "localhost"
+  
+train:
+  port: "8090"
+  protocol: "HTTP"
+  host: "localhost"  
+  

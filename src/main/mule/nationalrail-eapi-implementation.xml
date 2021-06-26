@@ -9,8 +9,8 @@ http://www.mulesoft.org/schema/mule/my-train-customer-sapi http://www.mulesoft.o
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
 	<json-logger:config name="JSON_Logger_Config" doc:name="JSON Logger Config" doc:id="e460c10b-2723-4324-b29f-09b7efcb67d7" applicationVersion="1.0" environment="dev" applicationName="nationalrail-eapi"/>
-	<okta-sapi:config name="Okta_SAPI_Config" doc:name="Okta-SAPI Config" doc:id="11468c85-00d6-49df-97fa-1f2e4cdfa61a" property_host="localhost" property_protocol="HTTP" property_basePath="/api/" property_port="8087" property_responseTimeout="10000000"/>
-	<my-train-customer-sapi:config name="My_Train_Customer_SAPI_Config" doc:name="My-Train-Customer-SAPI Config" doc:id="bd919e35-650a-4a7b-ba00-8ecfc1dbfa4b" property_host="localhost" property_port="8090" property_protocol="HTTP" property_basePath="/api/" property_responseTimeout="1000000"/>
+	<okta-sapi:config name="Okta_SAPI_Config" doc:name="Okta-SAPI Config" doc:id="11468c85-00d6-49df-97fa-1f2e4cdfa61a" property_host="${okta.host}" property_protocol="${okta.protocol}" property_basePath="/api/" property_port="${okta.port}" property_responseTimeout="10000000"/>
+	<my-train-customer-sapi:config name="My_Train_Customer_SAPI_Config" doc:name="My-Train-Customer-SAPI Config" doc:id="bd919e35-650a-4a7b-ba00-8ecfc1dbfa4b" property_host="${train.host}" property_port="${train.port}" property_protocol="${train.protocol}" property_basePath="/api/" property_responseTimeout="1000000"/>
 	<db:config name="Database_Config" doc:name="Database Config" doc:id="975bdae2-b32f-4dda-b397-723753cb52a7" >
 		<db:my-sql-connection host="64.227.37.97" port="3306" user="njclabs" password="training" database="nrs" />
 	</db:config>
