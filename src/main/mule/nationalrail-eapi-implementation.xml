@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:my-train-customer-sapi="http://www.mulesoft.org/schema/mule/my-train-customer-sapi"
+	xmlns:okta-sapi="http://www.mulesoft.org/schema/mule/okta-sapi" xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/okta-sapi http://www.mulesoft.org/schema/mule/okta-sapi/current/mule-okta-sapi.xsd
+http://www.mulesoft.org/schema/mule/my-train-customer-sapi http://www.mulesoft.org/schema/mule/my-train-customer-sapi/current/mule-my-train-customer-sapi.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<json-logger:config name="JSON_Logger_Config" doc:name="JSON Logger Config" doc:id="e460c10b-2723-4324-b29f-09b7efcb67d7" applicationVersion="1.0" environment="dev" applicationName="nationalrail-eapi"/>
+	<okta-sapi:config name="Okta_SAPI_Config" doc:name="Okta-SAPI Config" doc:id="11468c85-00d6-49df-97fa-1f2e4cdfa61a" property_host="localhost" property_protocol="HTTP" property_basePath="/api/" property_port="8087" property_responseTimeout="10000000"/>
+	<my-train-customer-sapi:config name="My_Train_Customer_SAPI_Config" doc:name="My-Train-Customer-SAPI Config" doc:id="bd919e35-650a-4a7b-ba00-8ecfc1dbfa4b" property_host="localhost" property_port="8090" property_protocol="HTTP" property_basePath="/api/" property_responseTimeout="1000000"/>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="975bdae2-b32f-4dda-b397-723753cb52a7" >
+		<db:my-sql-connection host="64.227.37.97" port="3306" user="njclabs" password="training" database="nrs" />
+	</db:config>
+	<flow name="customerSignUpFlow" doc:id="15c55a7c-f6f9-48df-9266-cc600087d6c3" >
+		<json-logger:logger doc:name="Logger" doc:id="31da4285-8ddf-4f1b-9015-d1a3bd11d30e" config-ref="JSON_Logger_Config" message="Flow Started"/>
+		<ee:transform doc:name="Transform Message" doc:id="1fd9d9d0-b917-43c2-a8c3-acd5df98d236" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---	
+[{
+	"firstName":payload[0].firstName,
+	"lastName":payload[0].lastName,
+	"emailId":payload[0].emailId,
+	"phoneNo":payload[0].phoneNo,
+	"password":payload[0].password,
+	"rquestion":payload[0].rquestion,
+	"ranswer":payload[0].ranswer
+
+}]]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="userReg" ><![CDATA[%dw 2.0
+output application/json
+---
+{	
+value:true		
+}]]></ee:set-variable>
+				<ee:set-variable variableName="mySqlPayload" ><![CDATA[%dw 2.0
+output application/json
+---
+[{
+	"firstName":payload[0].firstName,
+     "lastName":payload[0].lastName,
+     "emailId":payload[0].emailId,
+     "phoneNo":payload[0].phoneNo,
+     "password":payload[0].password,
+     "statusId": 1,
+     "creationDate?": "2021-06-18",
+     "createdBy?": "Shani",
+     "lastUpdatedDate?": "2010-06-18",
+     "lastUpdatedBy?": "Shani"	
+}]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<try doc:name="Try" doc:id="af50b326-7309-47b5-a044-d56a2fa80e68" >
+			<okta-sapi:create-register doc:name="Create register" doc:id="4e0dfe20-4ccc-4ef3-8aa2-b3f3ef713cde" config-ref="Okta_SAPI_Config" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="762af4ff-a0df-41ba-a3b2-c01a1be7376b" >
+					<ee:transform doc:name="Transform Message" doc:id="6087ec3e-0db1-468f-83cc-e034c62c5686" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	description:error.description,
+	message:error.message
+}]]></ee:set-payload>
+						</ee:message>
+						<ee:variables >
+							<ee:set-variable variableName="userReg" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	value: false
+}]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<choice doc:name="Choice" doc:id="9335d92f-9e4c-4e55-9ab6-898e1c2fd033" >
+			<when expression="#[vars.userReg.value==true]">
+				<ee:transform doc:name="Transform Message" doc:id="e9ebafc5-f484-4081-9f70-931587d1535e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+[{
+  custId:payload.id,	
+  firstName:vars.mySqlPayload[0].firstName,
+  lastName: vars.mySqlPayload[0].lastName,
+  emailId: vars.mySqlPayload[0].emailId,
+  phoneNo: vars.mySqlPayload[0].phoneNo,
+  password: vars.mySqlPayload[0].password,
+  statusId:1,
+  "creationDate?":"2021-06-18",
+  "createdBy?": "Shani",
+  "lastUpdatedBy?": "Shani",
+  "lastUpdatedDate?":"2021-06-18"
+}]]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<flow-ref doc:name="Flow Reference" doc:id="5e2a8b9a-f726-425f-bf55-6b02d53e68ad" name="CreateCustomerInDbFlow"/>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="087ac4a7-c95f-494f-b473-68d9172b9473" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message":"customer not created"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="CreateCustomerInDbFlow" doc:id="3c0ac3b9-3878-4b5b-a9f7-47c10add068f" >
+		<json-logger:logger doc:name="Logger" doc:id="a5f03c04-1f27-4925-abc0-7bba41c03ec9" config-ref="JSON_Logger_Config" message="CustomerCreationFlowStarted"/>
+		<try doc:name="Try" doc:id="2096d6a4-a21a-40c8-829f-e498260d265e" >
+			<my-train-customer-sapi:create-customer doc:name="Create customer" doc:id="4f6bfdb7-5b29-479a-b777-4de09ceca624" config-ref="My_Train_Customer_SAPI_Config">
+		</my-train-customer-sapi:create-customer>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="910f26bf-b911-445d-9f37-7af953dff52a" >
+					<ee:transform doc:name="Transform Message" doc:id="5869d9e9-13dc-436e-8da8-b85c26bc5eb2" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	description:error.detailedDescription
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</on-error-continue>
+			</error-handler>
+		</try>
+	</flow>
+	<flow name="ForgotPasswordFlow" doc:id="13b1cbe5-0ef8-4124-9496-6a87fe63a673" >
+		<json-logger:logger doc:name="Logger" doc:id="cc6cc270-47a4-497c-90c2-3758bdf14ebe" config-ref="JSON_Logger_Config" message="Flow started"/>
+		<try doc:name="Try" doc:id="a8f0ae6e-25cf-4c55-8381-17c143555d00" >
+			<okta-sapi:create-forgotpassword doc:name="Create forgotpassword" doc:id="71e2a1f2-9bad-4d6a-a9c7-7985eca3ff12" config-ref="Okta_SAPI_Config" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="8d74263c-3710-423b-8578-20aa9f49eb19" type="ANY">
+					<ee:transform doc:name="Transform Message" doc:id="cda89672-fe25-4c0e-8e5e-d290e14da52b" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	description:error.detailedDescription
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<json-logger:logger doc:name="Logger" doc:id="6e784f19-85e0-4375-aa87-e3e6b1b44cc2" config-ref="JSON_Logger_Config" message="EndOfFlow"/>
+	</flow>
+	<flow name="customerSignInFlow" doc:id="0e775e6c-67a7-4e03-b7bb-978b632a8757" >
+		<json-logger:logger doc:name="Logger" doc:id="7255eebc-aba3-483d-a637-2b813571e40a" config-ref="JSON_Logger_Config" message="Flow Started"/>
+		<try doc:name="Try" doc:id="3c652e96-dc95-4b4e-8d2d-149eb1539c0e" >
+			<okta-sapi:create-signin doc:name="Create signin" doc:id="24852f27-c4f4-446f-b3a2-a4093bf0a80b" config-ref="Okta_SAPI_Config" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="22a7bf65-0c4c-471d-8cf9-3cf0e8cfde81" type="ANY">
+					<ee:transform doc:name="Transform Message" doc:id="7c1623b9-257d-4df3-8211-d0ec09664bc3" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	description:error.detailedDescription
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</on-error-continue>
+			</error-handler>
+		</try>
+	</flow>
+	<flow name="editCustomerProfileFlow" doc:id="6f2b1837-5d78-4db0-b2ec-637c6a55b223" >
+		<json-logger:logger doc:name="Logger" doc:id="f8934484-f530-4f70-9cda-5a2542a18a7c" config-ref="JSON_Logger_Config" message="Flow Started"/>
+		<ee:transform doc:name="Transform Message" doc:id="fec7872f-11ca-4e7c-b425-341976f873c9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+[{
+   
+"firstName": payload.firstName,
+"email": payload.email
+
+}]
+]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="updateCustomerDbPayload" ><![CDATA[%dw 2.0
+output application/json
+---
+[{
+   
+"firstName": payload.firstName,
+"email": payload.email
+
+}]
+]]></ee:set-variable>
+				<ee:set-variable variableName="Flag" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	value:true
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<try doc:name="Try" doc:id="edf62352-7dfc-4c0b-a274-41493f22ebb3" >
+			<okta-sapi:update-editprofiles doc:name="Update editprofiles" doc:id="7efb64da-f013-4bc3-ac9d-0c094fed2589" config-ref="Okta_SAPI_Config" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="ede0d2ae-8aae-4170-bc72-eb1a3f976aa0" >
+					<ee:transform doc:name="Transform Message" doc:id="c001626a-e015-4b2f-9114-12e0cd6f17c5" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	description:error.description,
+	message:error.message
+
+}]]></ee:set-payload>
+						</ee:message>
+						<ee:variables >
+							<ee:set-variable variableName="Flag" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	value:false
+}]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<logger level="INFO" doc:name="OktaCheckLogger" doc:id="666c83dd-9714-471d-ab57-b1679af47d3e" message="#[vars.Flag.value]"/>
+		<choice doc:name="Choice" doc:id="b62d5a93-2746-4514-b1da-67b795d7a69e" >
+			<when expression="#[vars.Flag.value==true]">
+				<ee:transform doc:name="Transform Message" doc:id="0ac96bd9-410a-4094-8fbf-fda250efc4e2" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+[{
+	firstName:vars.updateCustomerDbPayload[0].firstName,
+	email:vars.updateCustomerDbPayload[0].email
+	
+	
+}]]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<db:update doc:name="Update" doc:id="7e02e6bc-ef02-497e-b5b9-1f3214903a96" config-ref="Database_Config">
+					<db:sql ><![CDATA[UPDATE nrs.xxtrain_customer_details 
+SET first_name =:first_name WHERE email_id=:email_id]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	first_name:payload[0].firstName,
+	email_id:payload[0].email
+	
+	
+}]]]></db:input-parameters>
+				</db:update>
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Transform Message" doc:id="a07a77c3-cd9b-4df2-af6a-5312cdae2b0a" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "error in update"
+ }]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<json-logger:logger doc:name="Logger" doc:id="ad7ec9af-98c9-4553-8edb-497df2e9a3cb" config-ref="JSON_Logger_Config" message="End of Flow"/>
+	</flow>
+	<flow name="getAllCustomersFlow" doc:id="e8e58825-5925-45a9-b577-67ec6619e519" >
+		<json-logger:logger doc:name="Logger" doc:id="0c22d666-99e3-4fc6-b648-803d2b8df951" config-ref="JSON_Logger_Config" message="Flow Started"/>
+		<try doc:name="Try" doc:id="3c38fb15-8b0b-4576-b328-06b453f502f3" >
+			<my-train-customer-sapi:get-customers doc:name="Get customers" doc:id="bed3b4e3-b23d-4fcf-949e-0bd23c653a3f" config-ref="My_Train_Customer_SAPI_Config" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="a1e47ad6-87f3-417f-ba8a-f68bcd067e8b" >
+					<ee:transform doc:name="Transform Message" doc:id="30323ce6-787a-455a-9cdc-78ff2eeddefa" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	description:error.detailedDescription
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<json-logger:logger doc:name="Logger" doc:id="9a81b35c-fbe3-49ec-b474-9eaebca49944" config-ref="JSON_Logger_Config" message="End of Flow"/>
+	</flow>
+	<flow name="getcustomerByID" doc:id="c9728e2b-0912-4998-a036-f4230f7920fd" >
+		<json-logger:logger doc:name="Logger" doc:id="d09d3f8e-6d3f-474d-894c-8f70e620e91a" config-ref="JSON_Logger_Config" message="START"/>
+		<try doc:name="Try" doc:id="936be190-7788-47f0-bb06-ba0a5d01ed8c" >
+			<my-train-customer-sapi:get-customer-by-id doc:name="Get customer by id" doc:id="b7eead20-2500-48e8-a301-d469d69372a8" config-ref="My_Train_Customer_SAPI_Config" id="#[attributes.uriParams.Id]" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="58e8fafd-7152-4728-a306-73bbf9dfe5f5" >
+					<ee:transform doc:name="Transform Message" doc:id="022910ad-daac-4694-8786-94f30e006a44" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	description:error.detailedDescription
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<ee:transform doc:name="Transform Message" doc:id="77025f23-942a-47bb-89a4-0bfd744f995f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<json-logger:logger doc:name="Logger" doc:id="6a8ad38e-846e-4737-9c5a-0d3c30221d49" config-ref="JSON_Logger_Config" message="END"/>
+	</flow>
+	<flow name="customer-SubscriptionRegistrationFlow" doc:id="bcd08e83-e795-43aa-9755-28a8f70f68c2" >
+		<json-logger:logger doc:name="Logger" doc:id="a93410a0-273b-41d9-82fa-566c9e69d304" config-ref="JSON_Logger_Config" message="Subscription Flow started"/>
+		<ee:transform doc:name="Transform Message" doc:id="d0e0b9f7-399b-438a-bb7b-b757a482aff8" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<try doc:name="Try" doc:id="4906dc72-5699-4f0f-9be2-d72b54e16ccc" >
+			<my-train-customer-sapi:create-subscription-by-id doc:name="Create subscription by id" doc:id="7f74d0d3-2850-4b55-aa49-bc7714461348" config-ref="My_Train_Customer_SAPI_Config" id="#[attributes.uriParams.Id]"/>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="4092f7e7-d6b1-47e3-8fe4-7b65f8e1610d" >
+					<ee:transform doc:name="Transform Message" doc:id="30c39d45-e97b-45c4-b7e5-ec72152c34dc" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	description:error.detailedDescription
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<json-logger:logger doc:name="Logger" doc:id="7b846f64-9fdd-451a-b5b0-6531fc0e6bf7" config-ref="JSON_Logger_Config" message="end of flow"/>
+	</flow>
+	<flow name="getAllSubscriptionsOfaCustomer" doc:id="79c3e6d6-d4d6-4805-bae6-d9121d059dab" >
+		<json-logger:logger doc:name="Logger" doc:id="c01a254a-58de-4ed4-9584-ea5897ef0a1f" config-ref="JSON_Logger_Config" message="Flow Started"/>
+		<my-train-customer-sapi:get-subscriptions-by-id doc:name="Get subscriptions by id" doc:id="63deff81-6fdb-41e3-9e3b-8fbed6c90e9c" config-ref="My_Train_Customer_SAPI_Config" id="#[attributes.uriParams.Id]"/>
+		<json-logger:logger doc:name="Logger" doc:id="8d7822da-25c2-45f3-a3f6-fbe9694e9007" config-ref="JSON_Logger_Config" message="EndOfFlow"/>
+	</flow>
+</mule>
